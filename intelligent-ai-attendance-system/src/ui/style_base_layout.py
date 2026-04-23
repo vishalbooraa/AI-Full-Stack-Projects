@@ -21,7 +21,7 @@ def style_background_dashboard():
     st.markdown("""
     <style>
         .stApp{
-              background: #5865F2 !important
+              background: #E0E3FF !important
             }
     </style>
 
@@ -49,7 +49,7 @@ def style_base_layout():
     /* Headings */
     h1, h2 {
         font-family:'Climate Crisis', sans-serif !important;
-        font-size:3.5rem !important;
+        font-size:2rem !important;
         line-height:1.1 !important;
         margin-bottom:0rem !important;
     }
@@ -81,6 +81,53 @@ def style_base_layout():
     button:hover{
         transform: scale(1.05);
     }
+    /* Text Input */
+    input {
+        background-color: white !important;
+        color: black !important;
+    }
+    /* Labels */
+    label {
+        color: black !important;
+    }
+    /* Placeholder text */
+    input::placeholder, textarea::placeholder {
+        color: #555 !important;
+    }
+    /* Full input container (VERY IMPORTANT) */
+    div[data-baseweb="input"] {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Inner wrapper (this fixes black patch near eye) */
+    div[data-baseweb="input"] > div {
+        background-color: white !important;
+    }
+
+    /* Actual input field */
+    div[data-baseweb="input"] input {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Eye icon button */
+    div[data-baseweb="input"] button {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* Remove weird hover dark effect */
+    div[data-baseweb="input"] button:hover {
+        background-color: #f5f5f5 !important;
+    }
+
+    /* Optional: border styling for clean UI */
+    div[data-baseweb="input"] {
+        border-radius: 10px !important;
+        border: 1px solid #ccc !important;
+    }
+    
 
     </style>
     """, unsafe_allow_html=True)
