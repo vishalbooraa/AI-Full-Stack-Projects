@@ -24,7 +24,7 @@ def create_teacher(username, password, name):
 
     data = {
         "username": username,
-        "password_hash": hash_pass(password),
+        "password": hash_pass(password),
         "name": name
     }
 
@@ -34,7 +34,7 @@ def create_teacher(username, password, name):
 
 def teacher_login(username, password):
     response = supabase.table("teachers")\
-        .select("teacher_id, username, password_hash, name")\
+        .select("teacher_id, username, password, name")\
         .eq("username", username)\
         .execute()
 
@@ -43,7 +43,7 @@ def teacher_login(username, password):
 
     teacher = response.data[0]
 
-    if check_pass(password, teacher["password_hash"]):
+    if check_pass(password, teacher["password"]):
         return teacher
 
     return None

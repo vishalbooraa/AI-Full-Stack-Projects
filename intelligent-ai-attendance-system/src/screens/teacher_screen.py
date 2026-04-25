@@ -25,6 +25,9 @@ def teacher_screen():
     style_base_layout()
 
     # Initialize state properly
+    if "teacher_data" in st.session_state:
+        teacher_dashboard()
+        return
     if "teacher_login_type" not in st.session_state:
         st.session_state["teacher_login_type"] = "login"
 
@@ -33,6 +36,22 @@ def teacher_screen():
     else:
         teacher_screen_register()
 
+
+def teacher_dashboard():
+    teacher_data = st.session_state["teacher_data"]
+    st.markdown(f"<h1 style='color: black; text-align: center'>Welcome, {teacher_data['name']}!</h1>", unsafe_allow_html=True)
+
+def login_teacher(username, password):
+    if not username or not password:
+        st.error("Please enter both username and password")
+        return False
+    teacher = teacher_login(username, password)
+    if teacher:
+        st.session_state.user_role = "teacher"
+        st.session_state["teacher_data"] = teacher
+        st.session_state.is_logged_in = True
+        return True
+    return False
 
 def teacher_screen_login():
     c1, c2 = st.columns(2, vertical_alignment="center", gap="xxlarge")
@@ -59,7 +78,7 @@ def teacher_screen_login():
 
     with btnc1:
         if st.button("Login", icon="🔐", use_container_width=True):
-            if teacher_login(username, password):
+            if login_teacher(username, password):
                 st.toast("Login successful!")
                 import time
                 time.sleep(1)
