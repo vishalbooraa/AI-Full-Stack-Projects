@@ -91,6 +91,7 @@ def teacher_screen_login():
         if st.button("Go to Register", type="primary", icon="📝", use_container_width=True):
             st.session_state["teacher_login_type"] = "register"
             st.rerun()
+    footer_dashboard()
 
 def teacher_screen_register():
     c1, c2 = st.columns(2, vertical_alignment="center", gap="xxlarge")
