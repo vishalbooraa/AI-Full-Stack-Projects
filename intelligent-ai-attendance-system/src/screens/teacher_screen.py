@@ -3,7 +3,22 @@ from src.ui.style_base_layout import style_background_dashboard
 from src.ui.style_base_layout import style_base_layout
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
+from src.database.db import check_teacher_exists, create_teacher
+from src.database.db import teacher_login
 
+
+def register_teacher(username,name,password,confirm_password):
+    if not username or not name or not password or not confirm_password:
+        return False,"All Fields are required"
+    if check_teacher_exists(username):
+        return False,"Username already exists"
+    if password != confirm_password:
+        return False,"Passwords do not match"
+    try:
+        create_teacher(username,password,name)
+        return True,"Teacher registered successfully! Please login now."
+    except Exception as e:
+        return False,f"An error occurred: {str(e)}"
 
 def teacher_screen():
     style_background_dashboard()
@@ -43,7 +58,15 @@ def teacher_screen_login():
     btnc1, btnc2 = st.columns(2)
 
     with btnc1:
-        st.button("Login", icon="🔐", use_container_width=True)
+        if st.button("Login", icon="🔐", use_container_width=True):
+            if teacher_login(username, password):
+                st.toast("Login successful!")
+                import time
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("Invalid username or password")
+                
 
     with btnc2:
         if st.button("Go to Register", type="primary", icon="📝", use_container_width=True):
@@ -76,7 +99,16 @@ def teacher_screen_register():
     btnc1, btnc2 = st.columns(2)
 
     with btnc1:
-        st.button("Register", icon="📝", use_container_width=True)
+        if st.button("Register", icon="📝", use_container_width=True):
+            success,message=register_teacher(username,name,password,confirm_password)
+            if success:
+                st.success(message)
+                import time
+                time.sleep(2)
+                st.session_state["teacher_login_type"] = "login"
+                st.rerun()
+            else:
+                st.error(message)
 
     with btnc2:
         if st.button("Back to Login", type="primary", icon="🔐", use_container_width=True):
