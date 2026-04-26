@@ -30,6 +30,7 @@ def get_trained_model():
     Y=[]
 
     student_db=get_all_students()
+    print("Student DB:", student_db)
     if not student_db:
         return None
     for student in student_db:
@@ -38,10 +39,20 @@ def get_trained_model():
             Y.append(student["student_id"])
     if not X:
         return None
-    model=SVC(kernel="linear",probability=True,class_weight="balanced")
+    print("X",X)
+    print("Y",Y)
+    num_classes = len(set(Y))
+    
+    if num_classes == 1:
+        return {"X": X, "Y": Y}  # No model needed for one student
+    
+    class_weight = "balanced"
+    probability = True
+    model=SVC(kernel="linear", probability=probability, class_weight=class_weight)
     try:
         model.fit(X,Y)
-    except:
+    except Exception as e:
+        st.error(f"Error training model: {e}")
         return None
     return {"model":model,"X":X,"Y":Y}
 
@@ -58,20 +69,23 @@ def predict_attendance(class_image_np):
     if not model_data:
         st.warning("No trained model available. Please train the model first.")
         return detected_students,[],len(encodings)
-    model=model_data["model"]
+    
     X_train=model_data["X"]
     Y_train=model_data["Y"]
+    model = model_data.get("model")  # None if single student
+    print("Model loaded with", len(X_train), "students.", X_train)
+    print("Y_train:", Y_train)
 
     all_students=sorted(list(set(Y_train)))
 
     for encoding in encodings:
-        if len(all_students)>=2:
-            predicted_id=model.predict([encoding])[0]
+        if model and len(all_students) >= 2:
+            predicted_id = model.predict([encoding])[0]
         else:
-            predicted_id=int(all_students[0])
+            predicted_id = int(all_students[0])
         
-        student_embeddings=X_train[Y_train.index(predicted_id)]
-        distance=np.linalg.norm(student_embeddings-encoding)
-        if distance<0.6:
-            detected_students[predicted_id]=True
-    return detected_students,all_students,len(encodings)
+        student_embeddings = X_train[Y_train.index(predicted_id)]
+        distance = np.linalg.norm(student_embeddings - encoding)
+        if distance < 0.6:
+            detected_students[predicted_id] = True
+    return detected_students, all_students, len(encodings)
