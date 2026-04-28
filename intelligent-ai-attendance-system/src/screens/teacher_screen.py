@@ -3,9 +3,10 @@ from src.ui.style_base_layout import style_background_dashboard
 from src.ui.style_base_layout import style_base_layout
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
-from src.database.db import check_teacher_exists, create_teacher
+from src.database.db import check_teacher_exists, create_teacher,get_teacher_subjects
 from src.database.db import teacher_login
 from src.components.dialouge import create_subject_dialog
+from src.components.subject_card import subject_card
 
 
 
@@ -98,10 +99,32 @@ def teacher_manage_subjects():
     teacher_id=st.session_state["teacher_data"]["teacher_id"]
     col1, col2 = st.columns(2)
     with col1:
-        st.header("Manage Subjects")
+        st.markdown("<h2 style='color: black; text-align: center;'>Manage Subject</h2>", unsafe_allow_html=True)
     with col2:
        if st.button("Add New Subject", type="secondary", icon="➕", width="content", use_container_width=True):
            create_subject_dialog(teacher_id)
+    
+    subjects=get_teacher_subjects(teacher_id)
+    if subjects:
+        for sub in subjects:
+            stats=[
+                ("🧑‍🎓", "Students", sub["total_students"]),
+                ("📅", "Classes", sub["total_classes"])
+            ]
+            def share_button(sub=sub):
+                if st.button("Share Subject", type="secondary", icon="🔗", width="content", key=f"share_{sub['subject_code']}_{sub['section']}"):
+                    share_subject_dialog(sub["name"],sub["subject_code"])
+                st.space()
+            subject_card(
+                name=sub["name"],
+                code=sub["subject_code"],
+                stats=stats,
+                section=sub["section"],
+                footer_callback=share_button
+            )
+    else:
+        st.warning("No subjects found. Please add a subject to get started.")
+
 
 def teacher_view_attendance():
     st.markdown("<h2 style='color: black; text-align: center'>View Attendance Records</h2>", unsafe_allow_html=True)
