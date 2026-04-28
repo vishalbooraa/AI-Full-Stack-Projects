@@ -5,6 +5,8 @@ from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from src.database.db import check_teacher_exists, create_teacher
 from src.database.db import teacher_login
+from src.components.dialouge import create_subject_dialog
+
 
 
 def register_teacher(username,name,password,confirm_password):
@@ -40,6 +42,72 @@ def teacher_screen():
 def teacher_dashboard():
     teacher_data = st.session_state["teacher_data"]
     st.markdown(f"<h1 style='color: black; text-align: center'>Welcome, {teacher_data['name']}!</h1>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2, vertical_alignment="center", gap="xxlarge")
+
+    with c1:
+        header_dashboard()
+
+    with c2:
+        if st.button("Log Out", type="secondary"):
+            st.session_state.is_logged_in = False
+            del st.session_state["teacher_data"]
+            st.session_state.user_role = None
+            st.session_state["teacher_login_type"] = "login"
+            st.toast("Logged out successfully!")
+            import time            
+            time.sleep(1)
+            st.rerun()
+    st.space()
+    if "current_teacher_tab" not in st.session_state:
+        st.session_state.current_teacher_tab = "take_attendance"
+    tab1,tab2,tab3=st.columns(3)
+    with tab1:
+        type1="primary" if st.session_state.current_teacher_tab=="take_attendance" else "tertiary"
+        if st.button("Take Attendance", type=type1, icon="📸", width="stretch"):
+            st.session_state.current_teacher_tab = "take_attendance"
+            st.rerun()
+            
+    with tab2:
+        type2="primary" if st.session_state.current_teacher_tab=="manage_subjects" else "tertiary"
+        if st.button("Manage Subjects", type=type2, icon="📚", width="stretch"):
+            st.session_state.current_teacher_tab = "manage_subjects"
+            st.rerun()
+            
+    with tab3:
+        type3="primary" if st.session_state.current_teacher_tab=="view_attendance" else "tertiary"
+        if st.button("View Attendance Records", type=type3, icon="📊", width="stretch"):
+            st.session_state.current_teacher_tab = "view_attendance"
+            st.rerun()
+
+    if st.session_state.current_teacher_tab == "take_attendance":
+        teacher_take_attendance()
+    elif st.session_state.current_teacher_tab == "manage_subjects":
+        teacher_manage_subjects()
+    elif st.session_state.current_teacher_tab == "view_attendance":
+        teacher_view_attendance()
+    
+    footer_dashboard()
+
+
+def teacher_take_attendance():
+    st.markdown("<h2 style='color: black; text-align: center'>Take Attendance</h2>", unsafe_allow_html=True)
+    st.info("This feature is under development. Please check back later.")
+    # Future implementation: Integrate camera input and AI attendance prediction here.
+
+def teacher_manage_subjects():
+    teacher_id=st.session_state["teacher_data"]["teacher_id"]
+    col1, col2 = st.columns(2)
+    with col1:
+        st.header("Manage Subjects")
+    with col2:
+       if st.button("Add New Subject", type="secondary", icon="➕", width="content", use_container_width=True):
+           create_subject_dialog(teacher_id)
+
+def teacher_view_attendance():
+    st.markdown("<h2 style='color: black; text-align: center'>View Attendance Records</h2>", unsafe_allow_html=True)
+    st.info("This feature is under development. Please check back later.")
+    # Future implementation: Display attendance records with filtering options.
+            
 
 def login_teacher(username, password):
     if not username or not password:
