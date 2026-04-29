@@ -64,7 +64,6 @@ def enroll_new_class_dialog():
             return
 
         try:
-            # ✅ Correct column name
             res = supabase.table("subjects") \
                 .select("*") \
                 .eq("subject_code", join_code) \
@@ -79,7 +78,6 @@ def enroll_new_class_dialog():
 
             student_id = st.session_state["student_data"]["student_id"]
 
-            # ✅ Correct table + column names
             check = supabase.table("subject_students") \
                 .select("*") \
                 .eq("subject_id", subject["subject_id"]) \
@@ -90,7 +88,7 @@ def enroll_new_class_dialog():
                 st.warning("You are already enrolled in this class")
                 return
 
-            # ✅ Enroll
+    
             enroll_student_to_subject(student_id, subject["subject_id"])
 
             st.toast(f"Enrolled in {subject['name']} successfully!")
@@ -99,3 +97,58 @@ def enroll_new_class_dialog():
 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
+
+
+@st.dialog("Quick Enroll in Class")
+def auto_enroll_dialog(join_code):
+
+    student_id = st.session_state["student_data"]["student_id"]
+
+    print("Auto Enroll Dialog: Student ID:", student_id)  # Debugging line
+    print("Auto Enroll Dialog Triggered with join code:", join_code)  # Debugging line'
+
+    res = supabase.table("subjects")\
+        .select("*")\
+        .eq("subject_code", join_code)\
+        .maybe_single()\
+        .execute()
+    print("Auto Enroll Query Result:", res)  # Debugging line
+
+    if not res or not res.data:
+        st.error("Invalid join code. Please check the link and try again.")
+        if st.button("Close", type="primary"):
+            st.query_params.clear()
+            st.rerun()
+        return
+
+    subject = res.data  
+
+    check = supabase.table("subject_students")\
+        .select("*")\
+        .eq("subject_id", subject["subject_id"])\
+        .eq("student_id", student_id)\
+        .execute()
+
+    if check.data:
+        st.warning(f"You are already enrolled in {subject['name']}")
+        if st.button("Got it!", type="primary"):
+            st.query_params.clear()
+            st.rerun()
+        return
+
+    st.markdown(f"## Do you want to enroll in **{subject['name']}**?")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("No Thanks", type="secondary", width="stretch"):
+            st.query_params.clear()
+            st.rerun()
+
+    with col2:
+        if st.button("Enroll now", type="primary"):
+            enroll_student_to_subject(student_id, subject["subject_id"])
+            st.toast(f"Enrolled in {subject['name']} successfully!")
+            time.sleep(1)
+            st.query_params.clear()
+            st.rerun()
