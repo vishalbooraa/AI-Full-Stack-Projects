@@ -5,6 +5,9 @@ from src.components.footer import footer_dashboard
 from PIL import Image
 import numpy as np
 import time
+from src.components.dialouge import enroll_new_class_dialog
+from src.database.db import get_student_subjects, get_attendance_logs,unenroll_student_from_subject
+from src.components.subject_card import subject_card
 
 from src.pipelines.face_pipeline import (
     predict_attendance,
@@ -18,11 +21,73 @@ from src.pipelines.voice_pipeline import get_voice_embedding
 # ---------------- DASHBOARD ---------------- #
 def student_dashboard():
     student_data = st.session_state["student_data"]
+    st.markdown(f"<h1 style='color: black; text-align: center'>Welcome, {student_data['name']}!</h1>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2, vertical_alignment="center", gap="xxlarge")
 
-    st.markdown(
-        f"<h1 style='color: black; text-align: center'>Welcome, {student_data['name']}!</h1>",
-        unsafe_allow_html=True
-    )
+    with c1:
+        header_dashboard()
+
+    with c2:
+        if st.button("Log Out", type="secondary"):
+            st.session_state.is_logged_in = False
+            del st.session_state["student_data"]
+            st.session_state.user_role = None
+            st.session_state["teacher_login_type"] = "login"
+            st.toast("Logged out successfully!")
+            import time            
+            time.sleep(1)
+            st.rerun()
+    st.space()
+
+    c1,c2=st.columns(2)
+    with c1:
+        st.header("Your Enrolled Classes")
+    with c2:
+        if st.button("Join New Class", type="primary", width="stretch"):
+            enroll_new_class_dialog()
+
+    with st.spinner("Loading your classes..."):
+        subjects=get_student_subjects(student_data["student_id"])
+        logs=get_attendance_logs(student_data["student_id"])
+
+    stats_map={}
+
+    for log in logs:
+        sid=log["subject_id"]
+        if sid not in stats_map:
+            stats_map[sid]={"total":0,"attended":0}
+        stats_map[sid]["total"]+=1
+        if log.get("is_present"):
+            stats_map[sid]["attended"]+=1
+
+    cols=st.columns(2)
+    for i,sub_node in enumerate(subjects):
+        sub=sub_node["subjects"]
+        sub_id=sub["subject_id"]
+
+        stat=stats_map.get(sub_id, {"total":0,"attended":0})
+        attendance_percentage= (stat["attended"]/stat["total"]*100) if stat["total"]>0 else 0
+        def unenroll_btn(sub_id=sub_id):
+            if st.button("Unenroll", type="secondary", width="content", key=f"unenroll_{sub['subject_code']}"):
+                unenroll_student_from_subject(student_data["student_id"], sub_id)
+                st.toast(f"Unenrolled from {sub['name']} successfully!")
+                st.rerun()
+
+        with cols[i%2]:
+            subject_card(
+                name=sub["name"],
+                code=sub["subject_code"],
+                section=sub["section"],
+                stats=[
+                    ("✅", "Attended", stat["attended"]),
+                    ("📅", "Total Classes", stat["total"]),
+                    ("📊", "Attendance %", attendance_percentage)
+                ],
+                footer_callback=unenroll_btn
+            )
+
+
+    footer_dashboard()
 
 
 # ---------------- MAIN SCREEN ---------------- #
