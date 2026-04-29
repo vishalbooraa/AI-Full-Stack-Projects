@@ -5,7 +5,7 @@ from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from src.database.db import check_teacher_exists, create_teacher,get_teacher_subjects
 from src.database.db import teacher_login
-from src.components.dialouge import create_subject_dialog
+from src.components.dialouge import create_subject_dialog,share_subject_dialog
 from src.components.subject_card import subject_card
 
 
@@ -112,7 +112,7 @@ def teacher_manage_subjects():
                 ("📅", "Classes", sub["total_classes"])
             ]
             def share_button(sub=sub):
-                if st.button("Share Subject", type="secondary", icon="🔗", width="content", key=f"share_{sub['subject_code']}_{sub['section']}"):
+                if st.button("Share Subject", type="secondary", icon="🔗", width="content", key=f"share_{sub['subject_code']}"):
                     share_subject_dialog(sub["name"],sub["subject_code"])
                 st.space()
             subject_card(
