@@ -12,6 +12,9 @@ from src.pipelines.face_pipeline import predict_attendance
 import numpy as np
 from src.database.config import supabase
 from datetime import datetime
+import pandas as pd
+from src.components.dialouge import attendance_result_dialog
+from datetime import date
 
 def register_teacher(username,name,password,confirm_password):
     if not username or not name or not password or not confirm_password:
@@ -149,10 +152,11 @@ def teacher_take_attendance():
                     enrolled_students=enrolled_res.data
                     if not enrolled_students:
                         st.warning("No students enrolled in this subject. Detected faces cannot be matched to any student.")
+                        return
                     else:
                         results,attendance_log=[],[]
 
-                        current_timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        current_timestamp=datetime.now().isoformat()
 
                         for enrollment in enrolled_students:
                             student=enrollment["students"]
@@ -163,7 +167,7 @@ def teacher_take_attendance():
                                 "Student ID": student["student_id"],
                                 "Name": student["name"],
                     
-                                "Detected In": ", ".join(sources) if is_present else "Not Detected",
+                                "Detected In": ", ".join([f"Img {s['Photo Index']}" for s in sources]) if is_present else "Not Detected",
                                 "Attendance Status": "Present" if is_present else "Absent"
                             })
 
@@ -171,9 +175,13 @@ def teacher_take_attendance():
                                 "student_id": student["student_id"],
                                 "subject_id": subject_options[selected_subject],
                                 "timestamp": current_timestamp,
-                                "status": "present" if is_present else "absent"
+                                "date":date.today().isoformat(),
+                                "is_present": is_present
                             })
                     attendance_result_dialog(pd.DataFrame(results), attendance_log)
+        with c3:
+            if st.button("Use Voice Attendance", type="secondary", width="stretch", icon="🎤"):
+                voice_attendance_dialog()
 
 def teacher_manage_subjects():
     teacher_id=st.session_state["teacher_data"]["teacher_id"]

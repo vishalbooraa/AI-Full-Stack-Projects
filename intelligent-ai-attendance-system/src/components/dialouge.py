@@ -6,6 +6,7 @@ from src.database.config import supabase
 import time
 from src.database.db import enroll_student_to_subject
 from PIL import Image
+from src.database.db import create_attendance_logs
 
 
 @st.dialog("Create New Subject")
@@ -220,3 +221,25 @@ def add_image_dialog(subject_id):
         st.toast("Attendance images saved!")
         # 👉 You can process images here (face recognition etc.)
         st.rerun()
+
+
+@st.dialog("Attendance Results")
+def attendance_result_dialog(df,logs):
+    st.write("Please review the detected faces and mark attendance")
+    st.dataframe(df,hide_index=True,width="stretch")
+
+    col1,col2=st.columns(2)
+    with col1:
+        if st.button("Discard and Close", type="secondary", width="stretch"):
+            st.session_state.pop("attendance_image", None)
+            st.rerun()
+    with col2:
+        if st.button("Confirm & Save", type="primary", width="stretch"):
+            try:
+                create_attendance_logs(logs)
+                st.toast("Attendance marked successfully!")
+                st.session_state.pop("attendance_image", None)
+                time.sleep(1)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error saving attendance: {e}")
