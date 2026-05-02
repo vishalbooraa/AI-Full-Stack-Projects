@@ -5,6 +5,7 @@ import io
 from src.database.config import supabase
 import time
 from src.database.db import enroll_student_to_subject
+from PIL import Image
 
 
 @st.dialog("Create New Subject")
@@ -152,3 +153,70 @@ def auto_enroll_dialog(join_code):
             time.sleep(1)
             st.query_params.clear()
             st.rerun()
+
+@st.dialog("Add or Capture Photo for Attendance")
+def add_image_dialog(subject_id):
+    st.write("Add Photo for Attendance")
+
+    # ✅ Safe initialization
+    if "attendance_image" not in st.session_state:
+        st.session_state["attendance_image"] = []
+
+    if "photo_tab" not in st.session_state:
+        st.session_state.photo_tab = "camera"
+
+    # ✅ Tab buttons (NO rerun here)
+    t1, t2 = st.columns(2)
+
+    with t1:
+        if st.button(
+            "Use Camera",
+            type="primary" if st.session_state.photo_tab == "camera" else "tertiary",
+            use_container_width=True
+        ):
+            st.session_state.photo_tab = "camera"
+
+    with t2:
+        if st.button(
+            "Upload Image",
+            type="primary" if st.session_state.photo_tab == "upload" else "tertiary",
+            use_container_width=True
+        ):
+            st.session_state.photo_tab = "upload"
+
+    st.divider()
+
+    # ✅ Camera section
+    if st.session_state.photo_tab == "camera":
+        img = st.camera_input("Take a photo", key="attendance_photo")
+
+        if img:
+            st.session_state["attendance_image"].append(Image.open(img))
+            st.toast("Photo captured!")
+            time.sleep(0.8)
+            st.rerun()   # ✅ allowed here
+
+    # ✅ Upload section (multiple files)
+    elif st.session_state.photo_tab == "upload":
+        imgs = st.file_uploader(
+            "Upload images",
+            type=["jpg", "jpeg", "png"],
+            accept_multiple_files=True,
+            key="attendance_upload"
+        )
+
+        if imgs:
+            for i in imgs:
+                st.session_state["attendance_image"].append(Image.open(i))
+
+            st.toast(f"{len(imgs)} images uploaded!")
+            time.sleep(0.8)
+            st.rerun()   # ✅ allowed here
+
+    st.divider()
+
+    # ✅ Done button
+    if st.button("Done", type="primary", use_container_width=True):
+        st.toast("Attendance images saved!")
+        # 👉 You can process images here (face recognition etc.)
+        st.rerun()
