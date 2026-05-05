@@ -4,7 +4,7 @@ from src.ui.style_base_layout import style_base_layout
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from src.database.db import check_teacher_exists, create_teacher,get_teacher_subjects
-from src.database.db import teacher_login
+from src.database.db import teacher_login,get_teacher_attendance_records
 from src.components.dialouge import create_subject_dialog,share_subject_dialog
 from src.components.subject_card import subject_card
 from src.components.dialouge import add_image_dialog
@@ -15,6 +15,7 @@ from datetime import datetime
 import pandas as pd
 from src.components.dialouge import attendance_result_dialog
 from datetime import date
+from src.components.dialouge import voice_attendance_dialog
 
 def register_teacher(username,name,password,confirm_password):
     if not username or not name or not password or not confirm_password:
@@ -113,7 +114,7 @@ def teacher_take_attendance():
 }
    
 
-    col1,col2=st.columns([3,1])
+    col1,col2=st.columns([3,1],vertical_alignment="bottom")
     with col1:
        selected_subject= st.selectbox("Select Subject", options=list(subject_options.keys()), key="selected_subject")
 
@@ -130,58 +131,59 @@ def teacher_take_attendance():
             with cols[idx % 4]:
                 st.image(img, use_container_width=True)
 
-        c1,c2,c3=st.columns(3)
-        with c1:
-            if st.button("clear images", type="secondary", width="stretch", icon="🗑️"):
-                st.session_state["attendance_image"] = []
-                st.rerun()
-        with c2:
-            has_photos = len(st.session_state["attendance_image"]) > 0
-            if st.button("Run Face Analysis", type="primary", width="stretch", icon="🤖", disabled=not has_photos):
-                with st.spinner("Running face analysis..."):
-                    all_detected_faces={}
-                    for idx, img in enumerate(st.session_state["attendance_image"]):
-                        img_np = np.array(img.convert("RGB"))
-                        detected,_,_=predict_attendance(img_np)
-                        if detected:
-                            for sid in detected.keys():
-                                student_id=int(sid)
-                                all_detected_faces.setdefault(student_id, []).append({"Photo Index": idx+1})
+    has_photos = len(st.session_state["attendance_image"]) > 0
+    c1,c2,c3=st.columns(3)
+    with c1:
+        if st.button("clear images", type="secondary", width="stretch", icon="🗑️",disabled= not has_photos):
+            st.session_state["attendance_image"] = []
+            st.rerun()
+    with c2:
+        if st.button("Run Face Analysis", type="primary", width="stretch", icon="🤖", disabled=not has_photos):
+            with st.spinner("Running face analysis..."):
+                all_detected_faces={}
+                for idx, img in enumerate(st.session_state["attendance_image"]):
+                    img_np = np.array(img.convert("RGB"))
+                    detected,_,_=predict_attendance(img_np)
+                    if detected:
+                        for sid in detected.keys():
+                            student_id=int(sid)
+                            all_detected_faces.setdefault(student_id, []).append({"Photo Index": idx+1})
                     
-                    enrolled_res=supabase.table("subject_students").select("*,students(*)").eq("subject_id", subject_options[selected_subject]).execute()
-                    enrolled_students=enrolled_res.data
-                    if not enrolled_students:
-                        st.warning("No students enrolled in this subject. Detected faces cannot be matched to any student.")
-                        return
-                    else:
-                        results,attendance_log=[],[]
+                enrolled_res=supabase.table("subject_students").select("*,students(*)").eq("subject_id", subject_options[selected_subject]).execute()
+                enrolled_students=enrolled_res.data
+                if not enrolled_students:
+                    st.warning("No students enrolled in this subject. Detected faces cannot be matched to any student.")
+                    return
+                else:
+                    results,attendance_log=[],[]
 
-                        current_timestamp=datetime.now().isoformat()
+                    current_timestamp=datetime.now().isoformat()
 
-                        for enrollment in enrolled_students:
-                            student=enrollment["students"]
-                            sources=all_detected_faces.get(int(student["student_id"]), [])
-                            is_present = len(sources) > 0
+                    for enrollment in enrolled_students:
+                        student=enrollment["students"]
+                        sources=all_detected_faces.get(int(student["student_id"]), [])
+                        is_present = len(sources) > 0
 
-                            results.append({
-                                "Student ID": student["student_id"],
-                                "Name": student["name"],
+                        results.append({
+                            "Student ID": student["student_id"],
+                            "Name": student["name"],
                     
-                                "Detected In": ", ".join([f"Img {s['Photo Index']}" for s in sources]) if is_present else "Not Detected",
-                                "Attendance Status": "Present" if is_present else "Absent"
-                            })
+                            "Detected In": ", ".join([f"Img {s['Photo Index']}" for s in sources]) if is_present else "Not Detected",
+                            "Attendance Status": "Present" if is_present else "Absent"
+                        })
 
-                            attendance_log.append({
-                                "student_id": student["student_id"],
-                                "subject_id": subject_options[selected_subject],
-                                "timestamp": current_timestamp,
-                                "date":date.today().isoformat(),
-                                "is_present": is_present
-                            })
-                    attendance_result_dialog(pd.DataFrame(results), attendance_log)
-        with c3:
-            if st.button("Use Voice Attendance", type="secondary", width="stretch", icon="🎤"):
-                voice_attendance_dialog()
+                        attendance_log.append({
+                            "student_id": student["student_id"],
+                            "subject_id": subject_options[selected_subject],
+                            "timestamp": current_timestamp,
+                            "date":date.today().isoformat(),
+                            "is_present": is_present
+                        })
+                attendance_result_dialog(pd.DataFrame(results), attendance_log)
+    with c3:
+         if st.button("Use Voice Attendance", type="secondary", width="stretch", icon="🎤"):
+            voice_attendance_dialog(subject_options[selected_subject])
+
 
 def teacher_manage_subjects():
     teacher_id=st.session_state["teacher_data"]["teacher_id"]
@@ -214,11 +216,75 @@ def teacher_manage_subjects():
         st.warning("No subjects found. Please add a subject to get started.")
 
 
+
+
+
+# ✅ Safe timestamp parser (handles microseconds issue)
+def safe_parse_timestamp(ts):
+    if not ts:
+        return None
+
+    # remove timezone (+00:00)
+    ts = ts.split("+")[0]
+
+    # remove microseconds completely (simplest & safest)
+    ts = ts.split(".")[0]
+
+    try:
+        return datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+
+
 def teacher_view_attendance():
-    st.markdown("<h2 style='color: black; text-align: center'>View Attendance Records</h2>", unsafe_allow_html=True)
-    st.info("This feature is under development. Please check back later.")
-    # Future implementation: Display attendance records with filtering options.
-            
+    st.header("Attendance Records")
+
+    teacher_id = st.session_state["teacher_data"]["teacher_id"]
+    records = get_teacher_attendance_records(teacher_id)
+
+    if not records:
+        st.warning("No attendance records found for your subjects.")
+        return
+
+    data = []
+
+    for r in records:
+        ts = r.get("timestamp")
+        parsed_time = safe_parse_timestamp(ts)
+
+        data.append({
+            "ts_group": parsed_time.strftime("%Y-%m-%d %H:%M:%S") if parsed_time else "N/A",
+            "Time": parsed_time.strftime("%Y-%m-%d %H:%M:%S") if parsed_time else "N/A",
+            "Subject": r["subjects"]["name"] if r.get("subjects") else "N/A",
+            "Subject_code": r["subjects"]["subject_code"] if r.get("subjects") else "N/A",
+            "is_present": 1 if r.get("is_present") else 0
+        })
+
+    # ✅ Create DataFrame once
+    df = pd.DataFrame(data)
+
+    # ✅ Group data
+    summary = (
+        df.groupby(['ts_group', 'Time', 'Subject', 'Subject_code'])
+        .agg(
+            Present_count=("is_present", "sum"),
+            Total_count=("is_present", "count")
+        )
+        .reset_index()
+    )
+
+    # ✅ Attendance display
+    summary["Attendance Stats"] = (
+        "✅ " + summary["Present_count"].astype(str) +
+        " / " + summary["Total_count"].astype(str) + " Students"
+    )
+
+    # ✅ Sort latest first
+    display_df = summary.sort_values(by="ts_group", ascending=False)[
+        ['Time', 'Subject', 'Subject_code', 'Attendance Stats']
+    ]
+
+    st.dataframe(display_df, hide_index=True, use_container_width=True)
 
 def login_teacher(username, password):
     if not username or not password:

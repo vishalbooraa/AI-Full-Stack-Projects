@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import streamlit as st
 from src.database.db import create_subject
 import segno
@@ -7,6 +9,10 @@ import time
 from src.database.db import enroll_student_to_subject
 from PIL import Image
 from src.database.db import create_attendance_logs
+from src.pipelines.voice_pipeline import process_bulk_audio
+from datetime import date,datetime
+import pandas as pd
+
 
 
 @st.dialog("Create New Subject")
@@ -225,13 +231,14 @@ def add_image_dialog(subject_id):
 
 @st.dialog("Attendance Results")
 def attendance_result_dialog(df,logs):
-    st.write("Please review the detected faces and mark attendance")
+    st.write("Please review the detected faces/voice detection  and mark attendance")
     st.dataframe(df,hide_index=True,width="stretch")
 
     col1,col2=st.columns(2)
     with col1:
         if st.button("Discard and Close", type="secondary", width="stretch"):
             st.session_state.pop("attendance_image", None)
+            st.session_state.pop("voice_attendance_result", None)
             st.rerun()
     with col2:
         if st.button("Confirm & Save", type="primary", width="stretch"):
@@ -239,7 +246,66 @@ def attendance_result_dialog(df,logs):
                 create_attendance_logs(logs)
                 st.toast("Attendance marked successfully!")
                 st.session_state.pop("attendance_image", None)
+                st.session_state.pop("voice_attendance_result", None)
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
                 st.error(f"Error saving attendance: {e}")
+
+@st.dialog("Voice Attendance")
+def voice_attendance_dialog(subject_id):
+    st.write("Record audio of students saying I am present and we will mark attendance based on voice recognition")
+    audio_data= None
+
+    audio_data = st.audio_input("Record audio for attendance", key="voice_attendance")
+
+    if st.button("Analyze Voice", type="primary", width="stretch", disabled= not audio_data):
+        with st.spinner("Analyzing voice attendance..."):
+            enrolled_res=supabase.table("subject_students").select("*,students(*)").eq("subject_id", subject_id).execute()
+            enrolled_students=enrolled_res.data
+            if not enrolled_students:
+                st.warning("No students enrolled in this subject. Detected faces cannot be matched to any student.")
+                return
+            candidate_dict={
+                s['students']['student_id']:s['students']['voice_embedding']
+                for s in enrolled_students if s['students'].get("voice_embedding")
+            }
+
+            if not candidate_dict:
+                st.warning("No enrolled students have voice embeddings. Voice attendance cannot be processed.")
+                return
+            
+            audio_bytes=audio_data.read()
+
+            detected_students=process_bulk_audio(audio_bytes, candidate_dict)
+            results,attendance_log=[],[]
+
+            current_timestamp=datetime.now().isoformat()
+
+            for enrollment in enrolled_students:
+                student=enrollment["students"]
+                scores=detected_students.get(student["student_id"], 0)
+                is_present = bool(scores>0)
+
+                results.append({
+                    "Student ID": student["student_id"],
+                    "Name": student["name"],
+                    
+                    "Detected In": f"{scores:.2f}" if scores else "Not Detected",
+                    "Attendance Status": "Present" if is_present else "Absent"
+                    })
+
+                attendance_log.append({
+                    "student_id": student["student_id"],
+                    "subject_id": subject_id,
+                    "timestamp": current_timestamp,
+                    "date":date.today().isoformat(),
+                    "is_present": is_present
+                     })
+            st.session_state.voice_attendance_result==(pd.DataFrame(results), attendance_log)
+
+    if st.session_state.get("voice_attendance_result"):
+        st.divider()
+
+        df_results, logs = st.session_state["voice_attendance_result"]
+        attendance_result_dialog(df_results, logs)

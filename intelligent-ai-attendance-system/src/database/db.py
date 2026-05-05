@@ -126,3 +126,7 @@ def create_attendance_logs(logs):
         .upsert(logs, on_conflict="subject_id,student_id,date") \
         .execute()
     return response.data
+
+def get_teacher_attendance_records(teacher_id):
+    response = supabase.table("attendance_logs").select("*, subjects!inner(*)").eq("subjects.teacher_id", teacher_id).execute()
+    return response.data
