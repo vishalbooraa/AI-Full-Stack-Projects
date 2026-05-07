@@ -7,4 +7,4 @@ It provides separate portals for teachers and students with a clean UI, modern s
 
 
 
-# Project Under Construction
+# Project Under Devlopment
