@@ -63,4 +63,3 @@ Suggestions and improvements are always welcome.
 
 ⭐ If you find this useful, consider giving it a star!
 
-## Project under devlopment
