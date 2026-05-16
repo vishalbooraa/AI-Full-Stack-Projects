@@ -61,7 +61,7 @@ class VGGEncoder(nn.Module):
             nn.ReLU()
         )
         self.vgg.load_state_dict(torch.load(vgg_path))
-        self.vgg=nn.sequential(*list(self.vgg.children())[:31])
+        self.vgg=nn.Sequential(*list(self.vgg.children())[:31])
         enc_layers=list(self.vgg.children())
         self.enc_1=nn.Sequential(*enc_layers[:4])
         self.enc_2=nn.Sequential(*enc_layers[4:11])
