@@ -3,7 +3,8 @@ import torch
 from pathlib import Path
 from utils.utils import *
 from torch.utils.data import DataLoader
-
+from utils.models import VGGEncoder,Decoder
+import torch.optim as optim
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -72,6 +73,20 @@ def parse_args():
         help="Batch size for training"
     )
 
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=-3,
+        help="Learning rate for training"
+    )
+
+    parser.add_argument(
+        "--lr_decay",
+        type=float,
+        default=5e-5,
+        help="Learning rate decay for training"
+    )
+
     return parser.parse_args()
 
 
@@ -96,6 +111,20 @@ def main():
 
     content_dataloader = DataLoader(content_dataset, batch_size=args.batch_size, shuffle=True,pin_memory=True,drop_last=True)
     style_dataloader = DataLoader(style_dataset, batch_size=args.batch_size, shuffle=True,pin_memory=True,drop_last=True)
+
+    print(len(content_dataloader), len(style_dataloader))
+
+    for batch in style_dataloader:
+        print(batch.shape)
+
+    encoder=VGGEncoder(args.vgg).to(device)
+    decoder=Decoder().to(device)
+
+    optimizer=optim.Adam(decoder.parameters(),lr=args.lr)
+
+    scheduler=optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: 1/(1+args.lr_decay*epoch))
+
+
 
 if __name__ == "__main__":
     main()
