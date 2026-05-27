@@ -91,6 +91,33 @@ def style_base_layout():
         background-color: #f5f5f5 !important;
     }
 
+    /* ---------------- SELECT BOXES ---------------- */
+    div[data-baseweb="select"] {
+        background-color: white !important;
+        border-radius: 0.8rem !important;
+        border: 1px solid #ccc !important;
+        color: black !important;
+    }
+
+    div[data-baseweb="select"] input,
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div,
+    div[data-baseweb="select"] button,
+    div[data-baseweb="select"] select,
+    div[data-baseweb="select"] option {
+        color: black !important;
+        background-color: white !important;
+    }
+
+    div[data-baseweb="select"] button:hover,
+    div[data-baseweb="select"] select:hover {
+        background-color: #f5f5f5 !important;
+    }
+
+    div[data-baseweb="select"] svg {
+        fill: #1a1a1a !important;
+    }
+
     /* ---------------- LABELS ---------------- */
     label {
         color: black !important;
