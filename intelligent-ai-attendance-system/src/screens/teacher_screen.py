@@ -99,7 +99,7 @@ def teacher_dashboard():
 
 def teacher_take_attendance():
     teacher_id=st.session_state["teacher_data"]["teacher_id"]
-    st.header("Take Attendance")
+    st.markdown("<h2 style='color: black; text-align: center;'>Take Attendance</h2>", unsafe_allow_html=True)
 
     if "attendance_image" not in st.session_state:
        st.session_state["attendance_image"] = []
@@ -123,7 +123,7 @@ def teacher_take_attendance():
             add_image_dialog(subject_options[selected_subject])
     
     st.divider()
-    st.header("Captured Images")
+    st.markdown("<h3 style='color: black; text-align: center;'>Uploaded Images</h3>", unsafe_allow_html=True)
     if st.session_state["attendance_image"]:
         st.write("Preview:")
         cols = st.columns(4)
@@ -237,7 +237,7 @@ def safe_parse_timestamp(ts):
 
 
 def teacher_view_attendance():
-    st.header("Attendance Records")
+    st.markdown("<h2 style='color: black; text-align: center;'>Attendance Records</h2>", unsafe_allow_html=True)
 
     teacher_id = st.session_state["teacher_data"]["teacher_id"]
     records = get_teacher_attendance_records(teacher_id)
