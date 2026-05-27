@@ -58,10 +58,13 @@ def style_base_layout():
 
     button[kind="secondary"] {
         background: #EB459E !important;
+        color: white !important;
     }
 
     button[kind="tertiary"] {
-        background: black !important;
+        background: #f2f4f8 !important;
+        color: #1a1a1a !important;
+        border: 1px solid #ccc !important;
     }
 
     button:hover {
@@ -173,11 +176,20 @@ def style_base_layout():
     /* Button override inside dialog */
     div[role="dialog"] button[kind="primary"] {
         background: #5965F2 !important;
+        color: white !important;
     }
 
     div[role="dialog"] button[kind="secondary"] {
         background: #EB459E !important;
+        color: white !important;
     }
+
+    div[role="dialog"] button[kind="tertiary"] {
+        background: #f2f4f8 !important;
+        color: #1a1a1a !important;
+        border: 1px solid #ccc !important;
+    }
+
     div[role="dialog"] h1,
     div[role="dialog"] h2 {
         text-shadow: 0 2px 8px rgba(89, 101, 242, 0.2);
